@@ -1,20 +1,1374 @@
 <!DOCTYPE html>
 <html lang="sk">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tailwind Test</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BONUSY stávkových kancelárií – Opravená verzia</title>
+
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --table-sticky-offset: 0px;
+      --bookie-col-width: 132px;
+    }
+    @media (max-width: 767px){
+      :root { --bookie-col-width: 110px; }
+    }
+    body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+    h1, h2, h3, h4, .font-heading { font-family: 'Oswald', sans-serif; }
+    .gradient-text { background-image: linear-gradient(to right, #059669, #0891b2); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+    .breadcrumb-container::-webkit-scrollbar { display: none; }
+    .breadcrumb-container { -ms-overflow-style: none; scrollbar-width: none; }
+
+    .submenu { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-in-out; }
+    .submenu.open { max-height: 1000px; }
+    .submenu-toggle .icon-arrow { transition: transform 0.25s ease-in-out; }
+    .submenu-toggle.open .icon-arrow { transform: rotate(90deg); }
+
+    /* Tooltip */
+    #dynamic-tooltip { position: fixed; z-index: 9999; visibility: hidden; width: auto; max-width: 220px; background: #374151; color: #fff; text-align: center; border-radius: 6px; padding: 10px; opacity: 0; transition: opacity .2s; pointer-events: none; box-shadow: 0 4px 14px rgba(0,0,0,.25); }
+    #tooltip-arrow { position: absolute; width: 8px; height: 8px; background: #374151; transform: rotate(45deg); bottom: -4px; left: 50%; margin-left: -4px; }
+
+    /* Badges - skryté v tabuľke, zobrazené v kartách a details */
+    #table-view .badge-container { 
+      display: none !important;
+    }
+    
+    #card-view .badge-container,
+    .details-card .badge { 
+      position: absolute; 
+      top: -10px; 
+      right: -5px; 
+      display: flex; 
+      gap: 4px; 
+      z-index: 10;
+    }
+    
+    .details-card .badge {
+      position: static;
+      display: inline-flex;
+      margin-right: 6px;
+    }
+    
+    .badge { 
+      display: inline-flex; 
+      align-items: center; 
+      font-weight: 700; 
+      line-height: 1; 
+      border-radius: 9999px; 
+      white-space: nowrap; 
+      padding: 2px 6px; 
+      font-size: 9px; 
+    }
+    .badge-top-tip { color: #047857; background: #d1fae5; border: 1px solid #a7f3d0; }
+    .badge-recommended { color: #92400e; background: #fef3c7; border: 1px solid #fde68a; }
+
+    /* Prepínač zobrazenia */
+    .view-toggle-btn.active-view-btn { background: #10B981; color: #fff; border-radius: 6px; }
+    .view-toggle-btn:not(.active-view-btn) { color: #6b7280; }
+
+    #table-view { overflow-y: visible !important; }
+
+    /* Detaily (riadková karta) */
+    tr.details-row > td { 
+      position: relative; 
+      z-index: 20; 
+      padding: 0 !important; 
+    }
+    
+    tr.details-row.hidden {
+      display: none !important;
+    }
+    
+    .details-card {
+      width: calc(100% - 2rem);
+      margin: 1rem auto;
+      background: white;
+      position: relative;
+      overflow: visible;
+    }
+
+    /* PORTAL overlay */
+    #infocard-portal { position: fixed; inset: 0; display: none; z-index: 1000; }
+    #infocard-backdrop { position: absolute; inset: 0; background: rgba(17,24,39,.7); backdrop-filter: blur(4px); }
+    #infocard-holder { 
+      position: absolute; 
+      inset: 0; 
+      display: flex; 
+      justify-content: center; 
+      align-items: flex-start; 
+      padding: 3rem 1rem 2rem; 
+      overflow: auto; 
+    }
+    #infocard-holder .details-card { 
+      width: min(720px, calc(100% - 2rem)); 
+      max-height: none !important; 
+      overflow: visible !important; 
+      position: relative;
+    }
+    
+    /* Tlačidlo zatvárania prilepené ku karte */
+    #infocard-close { 
+      position: absolute;
+      top: -10px;
+      left: -10px;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #1f2937;
+      color: white;
+      border: 3px solid white;
+      border-radius: 50%;
+      box-shadow: 0 4px 12px rgba(0,0,0,.3);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 20px;
+      font-weight: bold;
+      z-index: 10;
+    }
+    
+    #infocard-close:hover { 
+      background: #374151;
+      transform: scale(1.1);
+    }
+    
+    /* Odstránime starý container */
+    #infocard-close-container { 
+      display: none;
+    }
+
+    /* Edge fades - len pre desktop */
+    @media (min-width: 768px) {
+      #edge-fade-left, #edge-fade-right { 
+        pointer-events: none;
+      }
+      #edge-fade-left { 
+        background: linear-gradient(90deg, #ffffff 0%, rgba(255,255,255,0) 100%); 
+      }
+      #edge-fade-right { 
+        background: linear-gradient(270deg, #ffffff 0%, rgba(255,255,255,0) 100%);
+      }
+    }
+    
+    /* Jemný gradient indikátor pre mobil */
+    @media (max-width: 767px) {
+      #table-view {
+        position: relative;
+      }
+      
+      /* Gradient shadow na pravej strane keď je možné scrollovať */
+      #scroll-indicator {
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 30px;
+        background: linear-gradient(270deg, 
+          rgba(255,255,255,0.95) 0%, 
+          rgba(255,255,255,0.7) 30%,
+          rgba(255,255,255,0) 100%);
+        pointer-events: none;
+        z-index: 5;
+        display: none;
+      }
+      
+      #table-view.has-scroll #scroll-indicator {
+        display: block;
+      }
+      
+      /* Alternatíva - veľmi jemný vertikálny prúžok */
+      #table-view.has-scroll::after {
+        content: "";
+        position: absolute;
+        right: 0;
+        top: 20%;
+        bottom: 20%;
+        width: 2px;
+        background: linear-gradient(180deg,
+          transparent,
+          rgba(156, 163, 175, 0.3) 20%,
+          rgba(156, 163, 175, 0.3) 80%,
+          transparent);
+        pointer-events: none;
+      }
+    }
+
+    /* Hlavička tabuľky */
+    #table-view thead {
+      position: relative;
+      z-index: 30;
+    }
+    
+    #table-view thead th {
+      background-color: #f9fafb !important;
+      box-shadow: inset 0 -1px 0 #e5e7eb;
+      z-index: 30;
+    }
+    
+    body.table-header-stuck #table-view thead th {
+      z-index: 35;
+      box-shadow: inset 0 -1px 0 #e5e7eb, 0 8px 16px -8px rgba(15, 23, 42, 0.35);
+    }
+    
+    #table-view thead th.sticky {
+      z-index: 40;
+    }
+    
+    body.table-header-stuck #table-view thead th.sticky {
+      z-index: 45;
+    }
+
+    /* Tabuľka - stabilita */
+    #table-view table {
+      table-layout: auto;
+      min-width: 100%;
+    }
+    
+    #table-view tbody {
+      position: relative;
+    }
+
+    /* Prvý sticky stĺpec - STÁVKOVÁ KANCELÁRIA */
+    #table-view thead th:nth-child(2),
+    #table-view tbody td:nth-child(2) {
+      width: var(--bookie-col-width);
+      min-width: var(--bookie-col-width);
+      position: sticky;
+      left: 0;
+      z-index: 10;
+    }
+    
+    #table-view thead th:nth-child(2) {
+      background: #f9fafb;
+    }
+    
+    #table-view tbody td:nth-child(2) { 
+      padding-left: 0.5rem; 
+      padding-right: 0.5rem;
+    }
+    
+    #table-view tbody td:nth-child(2) .logo-tile { 
+      width: 70px; 
+      height: 28px; 
+    }
+    
+    @media (min-width: 768px){
+      #table-view tbody td:nth-child(2) .logo-tile{ 
+        width: 80px; 
+        height: 30px; 
+      }
+    }
+    
+    /* Druhý sticky stĺpec - MAX BONUS */
+    #table-view thead th:nth-child(6),
+    #table-view tbody td:nth-child(6) {
+      min-width: 110px;
+      position: sticky;
+      left: var(--bookie-col-width);
+      z-index: 10;
+    }
+    
+    #table-view thead th:nth-child(6) {
+      background: #f9fafb;
+    }
+    
+    /* Pozadie pre normálny stav sticky stĺpcov */
+    #table-view tbody tr.group td:nth-child(2),
+    #table-view tbody tr.group td:nth-child(6) {
+      background-color: white;
+    }
+    
+    /* Hover efekt - musí byť po normálnom stave */
+    #table-view tbody tr.group:hover td:nth-child(2),
+    #table-view tbody tr.group:hover td:nth-child(6) {
+      background-color: rgb(249 250 251) !important; /* gray-50 */
+    }
+    
+    /* Skrátené názvy bonusov pre mobil */
+    @media (max-width: 767px) {
+      .bonus-type-full {
+        display: none;
+      }
+      .bonus-type-short {
+        display: inline;
+      }
+      /* Percentá bez medzery pre mobil */
+      .percent-value::after {
+        content: "%";
+      }
+    }
+    
+    @media (min-width: 768px) {
+      .bonus-type-full {
+        display: inline;
+      }
+      .bonus-type-short {
+        display: none;
+      }
+    }
+    #table-view thead th:nth-child(10),
+    #table-view tbody td:nth-child(10) {
+      min-width: 130px;
+    }
+    
+    /* Bonus kód stĺpec */
+    #table-view thead th:nth-child(7),
+    #table-view tbody td:nth-child(7) {
+      min-width: 60px;
+    }
+    
+    /* Min vklad */
+    #table-view thead th:nth-child(11),
+    #table-view tbody td:nth-child(11) {
+      min-width: 80px;
+    }
+    
+    /* Extra a Free Spins */
+    #table-view thead th:nth-child(12),
+    #table-view tbody td:nth-child(12),
+    #table-view thead th:nth-child(13),
+    #table-view tbody td:nth-child(13) {
+      min-width: 100px;
+    }
+
+    /* STICKY RIADOK - čisté riešenie */
+    tr.row-is-sticky {
+      position: relative;
+      background-color: #fefce8;
+      z-index: 25;
+    }
+    
+    tr.row-is-sticky > td {
+      background-color: #fefce8 !important;
+      position: relative;
+    }
+    
+    /* Z-index pre sticky stĺpce v sticky riadku */
+    tr.row-is-sticky > td:nth-child(2),
+    tr.row-is-sticky > td:nth-child(6) {
+      z-index: 26 !important;
+      background-color: #fefce8 !important;
+    }
+    
+    /* Pri skrolovaní */
+    body.table-header-stuck tr.row-is-sticky {
+      z-index: 25;
+    }
+    
+    body.table-header-stuck tr.row-is-sticky > td {
+      z-index: 25;
+      background-color: #fefce8 !important;
+    }
+    
+    body.table-header-stuck tr.row-is-sticky > td:nth-child(2),
+    body.table-header-stuck tr.row-is-sticky > td:nth-child(6) {
+      z-index: 26 !important;
+      background-color: #fefce8 !important;
+    }
+
+    .thead-i-badge{ 
+      position:absolute; 
+      top:-8px; 
+      right:-8px; 
+      display:inline-flex; 
+      align-items:center; 
+      justify-content:center; 
+      width:14px; 
+      height:14px; 
+      border-radius:9999px; 
+      font: 800 10px/1 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; 
+      color:#047857; 
+      background:#ecfdf5; 
+      border:1.5px solid #10B981; 
+      box-shadow:0 0 0 2px #ffffff, 0 1px 2px rgba(0,0,0,.06); 
+      z-index:1; 
+    }
+    
+    @media (min-width: 768px){
+      #table-view thead th:nth-child(4),
+      #table-view tbody td:nth-child(4){ 
+        white-space: normal; 
+        word-break: keep-all; 
+        overflow-wrap: normal; 
+        line-height: 1.15; 
+      }
+    }
+
+    header.sticky { 
+      z-index: 60 !important; 
+    }
+  </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center h-screen">
-  <div class="text-center">
-    <h1 class="text-4xl font-bold text-blue-600 mb-4">Ahoj, Codex!</h1>
-    <button 
-      class="px-6 py-3 bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600 transition"
-      onclick="document.getElementById('msg').innerText='Klikol si na tlačidlo 🚀'">
-      Klikni ma
-    </button>
-    <p id="msg" class="mt-4 text-gray-700"></p>
-  </div>
+<body class="bg-gray-100">
+
+<div class="container mx-auto max-w-screen-xl bg-white shadow-xl">
+  <!-- HLAVIČKA -->
+  <header class="sticky top-0 z-50 bg-white shadow-md">
+    <div class="h-1 bg-gradient-to-r from-emerald-500 to-cyan-500"></div>
+    <div class="mx-auto flex h-20 items-center justify-between px-4 sm:px-6 lg:px-8">
+      <a href="/" class="flex-shrink-0">
+        <div class="font-heading text-2xl font-bold text-gray-800 tracking-wide">
+          STAVKOVE<span class="text-emerald-600">KANCELARIE</span>.com
+        </div>
+      </a>
+      <div class="flex items-center gap-2">
+        <button class="text-gray-500 hover:text-emerald-600 transition-colors" aria-label="Hľadať">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+          </svg>
+        </button>
+        <button id="hamburger-button" class="text-gray-800 hover:text-emerald-600 focus:outline-none md:hidden" aria-label="Menu">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-7 w-7">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- MOBILNÉ MENU -->
+    <nav id="mobile-menu" class="hidden absolute top-full left-0 w-full bg-white shadow-xl md:hidden">
+      <ul>
+        <li><a href="/" class="block px-5 py-3 text-gray-700 font-semibold hover:bg-gray-100">Domov</a></li>
+        <li class="border-t border-gray-200">
+          <div class="flex items-center justify-between px-5 py-3 hover:bg-gray-100 cursor-pointer submenu-toggle">
+            <a href="/bonusy/" class="text-emerald-600 font-bold">Bonusy</a>
+            <svg class="h-5 w-5 text-gray-400 icon-arrow" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
+          </div>
+          <ul class="submenu bg-gray-50 pl-5">
+            <li><a href="/bonusy/" class="block border-l-2 border-emerald-500 bg-emerald-50 px-4 py-3 text-emerald-700 font-semibold">Súhrn</a></li>
+            <li class="border-t border-gray-200">
+              <div class="flex items-center justify-between px-4 py-3 hover:bg-gray-200 cursor-pointer submenu-toggle">
+                <a href="/bonusy/vkladove/" class="text-gray-600">Vkladový bonus</a>
+                <svg class="h-5 w-5 text-gray-400 icon-arrow" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
+              </div>
+              <ul class="submenu bg-gray-100 pl-4">
+                <li><a href="#" class="block border-l-2 border-cyan-400 px-4 py-2 text-sm text-gray-600 hover:bg-gray-200">Podúroveň 3.1</a></li>
+                <li><a href="#" class="block border-l-2 border-cyan-400 px-4 py-2 text-sm text-gray-600 hover:bg-gray-200">Podúroveň 3.2</a></li>
+              </ul>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </nav>
+
+    <nav class="bg-gray-50 border-b border-t border-gray-200 px-4 sm:px-6 lg:px-8">
+      <div class="breadcrumb-container overflow-x-auto whitespace-nowrap py-3 text-sm">
+        <ol class="inline-flex items-center space-x-1 md:space-x-2 text-gray-500">
+          <li><a href="/" class="hover:text-emerald-600">Domov</a></li>
+          <li><span class="mx-1">/</span><a href="/bonusy/" class="hover:text-emerald-600">Bonusy</a></li>
+          <li><span class="mx-1">/</span><span class="font-semibold text-gray-700">Súhrn</span></li>
+        </ol>
+      </div>
+    </nav>
+  </header>
+
+  <main class="p-4 sm:p-6 lg:p-8">
+    <article>
+      <h1 class="font-heading text-4xl font-bold text-gray-900 md:text-5xl gradient-text">VSTUPNÉ BONUSY STÁVKOVÝCH KANCELÁRIÍ</h1>
+      <p class="mt-4 text-lg text-gray-600 leading-relaxed">Vyberte si ešte dnes ten najlepší vstupný bonus na tipovanie. Ponúkame aktuálny prehľad všetkých druhov bonusov, vrátane ich podmienok a promo kódov.</p>
+
+      <hr class="my-10 border-gray-200">
+
+      <!-- BLOK S TABUĽKOU/KARTAMI -->
+      <div class="bg-white rounded-none sm:rounded-xl">
+        <div class="px-4 sm:px-6 pt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <h2 class="font-heading text-3xl font-medium text-gray-800">Prehľad bonusov</h2>
+          <div class="flex items-center rounded-lg bg-gray-100 p-1">
+            <button id="show-table-btn" type="button" class="view-toggle-btn active-view-btn px-4 py-1.5 text-sm font-bold">Tabuľka</button>
+            <button id="show-cards-btn" type="button" class="view-toggle-btn px-4 py-1.5 text-sm font-bold">Karty</button>
+          </div>
+        </div>
+
+        <div id="table-wrap" class="relative mt-6">
+          <div id="table-view" class="overflow-x-auto">
+            <table class="min-w-full text-sm text-center border-separate" style="border-spacing: 0;">
+              <thead class="font-bold uppercase bg-gray-50">
+                <tr class="text-gray-500 text-[11px] leading-tight bg-gray-50">
+                  <th class="py-3 px-2 hidden md:table-cell bg-gray-50 border-b border-gray-200">#</th>
+                  <th class="py-3 px-2 sticky left-0 bg-gray-50 z-20 border-b border-gray-200">Stávková kancelária</th>
+                  <th class="py-3 px-2 hidden md:table-cell bg-gray-50 border-b border-gray-200">Rating</th>
+                  <th class="py-3 px-2 hidden md:table-cell bg-gray-50 border-b border-gray-200" data-tooltip-text="Typ uvítacieho bonusu (napr. vkladový, bez rizika atď.)">
+                    <div class="inline-flex items-center justify-center relative">
+                      Druh<br>bonusu
+                      <span class="thead-i-badge">i</span>
+                    </div>
+                  </th>
+                  <th class="py-3 px-2 hidden md:table-cell bg-gray-50 border-b border-gray-200">Percentá</th>
+                  <th class="py-3 px-2 sticky bg-gray-50 z-20 border-b border-gray-200">
+                    <div class="inline-flex items-center justify-center relative">
+                      Max.<br> bonus
+                      <span id="bonus-type-mobile-i" class="thead-i-badge md:!hidden">i</span>
+                    </div>
+                  </th>
+                  <th class="py-3 px-2 bg-gray-50 border-b border-gray-200">Bonus<br>Kód</th>
+                  <th class="py-3 px-2 md:hidden bg-gray-50 border-b border-gray-200">Akcia</th>
+                  <th class="py-3 px-2 bg-gray-50 border-b border-gray-200" data-tooltip-text="Informácia kedy bude bonus pripísaný.">
+                    <div class="inline-flex items-center justify-center relative">
+                      <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.75">
+                        <path d="M3 7h14a3 3 0 0 1 3 3v4a3 3 0 0 1-3 3H3z"></path>
+                        <path d="M16 7V5a2 2 0 0 0-2-2H6a3 3 0 0 0-3 3"></path>
+                        <circle cx="16.5" cy="12" r="1.5"></circle>
+                      </svg>
+                      <span class="thead-i-badge">i</span>
+                    </div>
+                  </th>
+                  <th class="py-3 px-2 bg-gray-50 border-b border-gray-200 w-[150px] min-w-[150px]" data-tooltip-text="Koľkokrát musíte staviť bonus a vklad pred výberom.">
+                    <div class="inline-flex items-center justify-center relative">
+                      Pretočenie
+                      <span class="thead-i-badge" style="top: -12px;">i</span>
+                    </div>
+                  </th>
+                  <th class="py-3 px-2 bg-gray-50 border-b border-gray-200">Min.<br>vklad</th>
+                  <th class="py-3 px-2 bg-gray-50 border-b border-gray-200" data-tooltip-text="Dodatočný benefit k hlavnému bonusu (napr. kredit navyše, stávky bez rizika).">
+                    <div class="inline-flex items-center justify-center relative">
+                      Extra<br>bonus
+                      <span class="thead-i-badge">i</span>
+                    </div>
+                  </th>
+                  <th class="py-3 px-2 bg-gray-50 border-b border-gray-200" data-tooltip-text="Bonusové otočky zdarma v kasíne.">
+                    <div class="inline-flex items-center justify-center relative">
+                      Free<br>Spins
+                      <span class="thead-i-badge">i</span>
+                    </div>
+                  </th>
+                  <th class="py-3 px-2 hidden md:table-cell bg-gray-50 border-b border-gray-200">Akcia</th>
+                </tr>
+              </thead>
+
+              <tbody class="text-gray-800">
+                <!-- RIADOK 1 -->
+                <tr class="group">
+                  <td class="px-2 py-2 hidden md:table-cell bg-white group-hover:bg-gray-50 border-b border-gray-200">
+                    <span class="font-bold text-emerald-600 block">1.</span>
+                  </td>
+                  <td class="px-2 py-2 sticky left-0 bg-white group-hover:bg-gray-50 z-10 border-b border-gray-200">
+                    <div class="flex items-center justify-center h-full">
+                      <div class="relative inline-flex items-center">
+                        <div class="logo-tile p-2 bg-white flex items-center justify-center rounded-md border border-gray-200">
+                          <img src="logo.svg" alt="Tipsport logo" class="h-4"/>
+                        </div>
+                        <div class="badge-container z-30">
+                          <span class="badge badge-recommended">Odporúčame</span>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="px-2 py-2 font-bold hidden md:table-cell bg-white group-hover:bg-gray-50 border-b border-gray-200">
+                    <div>
+                      <span class="text-lg">9,1</span>
+                      <div class="w-16 h-1.5 bg-gray-200 rounded-full mt-1 mx-auto">
+                        <div class="h-full bg-emerald-500 rounded-full" style="width:91%"></div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="px-2 py-2 hidden md:table-cell bg-white group-hover:bg-gray-50 border-b border-gray-200">
+                    <span class="hidden md:inline">Vkladový bonus</span>
+                    <span class="md:hidden">Vkladový</span>
+                  </td>
+                  <td class="px-2 py-2 font-semibold hidden md:table-cell bg-white group-hover:bg-gray-50 border-b border-gray-200">100 %</td>
+                  <td class="px-2 py-2 sticky bg-white group-hover:bg-gray-50 z-10 border-b border-gray-200">
+                    <!-- mobil: nové rozloženie - primárna hodnota hore -->
+                    <div class="md:hidden flex flex-col items-center text-center">
+                      <!-- Hlavná hodnota hore -->
+                      <span class="font-bold text-amber-600 text-[16px] whitespace-nowrap">100.000 Kč</span>
+                      <!-- Spodný riadok: percentá vľavo, typ bonusu vpravo -->
+                      <div class="flex justify-between items-center w-full -mt-0.5">
+                        <span class="text-gray-500 text-[11px] font-semibold percent-value">100</span>
+                        <span class="text-gray-500 text-[11px]">
+                          <span class="bonus-type-full">Vkladový bonus</span>
+                          <span class="bonus-type-short">[Vkladový]</span>
+                        </span>
+                      </div>
+                    </div>
+                    <!-- desktop: len hlavná hodnota -->
+                    <div class="hidden md:block font-bold text-amber-600 text-[16px] whitespace-nowrap">100.000 Kč</div>
+                  </td>
+                  <td class="px-1 py-2 bg-white group-hover:bg-gray-50 border-b border-gray-200 text-center">
+                    <div class="flex justify-center">
+                      <button class="toggle-details-btn flex flex-col items-center justify-center gap-0.5 h-9 w-10 border border-gray-300 rounded cursor-pointer hover:bg-gray-100 text-gray-700" data-target="#details-row-1">
+                        <span class="text-[10px] font-bold leading-none">KÓD</span>
+                        <svg class="arrow-icon w-4 h-4 mt-0 shrink-0 block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                      </button>
+                    </div>
+                  </td>
+                  <td class="px-2 py-2 md:hidden bg-white group-hover:bg-gray-50 border-b border-gray-200">
+                    <a href="#" class="inline-flex items-center justify-center h-10 px-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg text-xs">Získať</a>
+                  </td>
+                  <td class="px-2 py-2 text-xl font-light text-gray-400 bg-white group-hover:bg-gray-50 border-b border-gray-200">
+                    <span class="inline-block cursor-pointer" data-tooltip-text="Bonus vám bude pripísaný po častiach.">ⓘ</span>
+                  </td>
+                  <td class="px-2 py-2 bg-white group-hover:bg-gray-50 border-b border-gray-200">
+                    <span class="block whitespace-nowrap">10× B + 10× V</span>
+                    <span class="block whitespace-nowrap text-[11px] text-gray-500 -mt-0.5">(max. 1.600.000 Kč)</span>
+                  </td>
+                  <td class="px-2 py-2 whitespace-nowrap bg-white group-hover:bg-gray-50 border-b border-gray-200">20.000 Kč</td>
+                  <td class="px-2 py-2 font-semibold text-sky-600 bg-white group-hover:bg-gray-50 border-b border-gray-200"><span class="whitespace-nowrap">1.000 Kč ZDARMA</span></td>
+                  <td class="px-2 py-2 font-semibold text-sky-600 whitespace-nowrap bg-white group-hover:bg-gray-50 border-b border-gray-200">100 FS</td>
+                  <td class="px-2 py-2 hidden md:table-cell bg-white group-hover:bg-gray-50 border-b border-gray-200">
+                    <a href="#" class="inline-flex items-center justify-center h-10 px-4 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg text-xs">Získať</a>
+                  </td>
+                </tr>
+                <tr id="details-row-1" class="details-row hidden">
+                  <td colspan="14">
+                    <div class="details-card bg-gray-50 border border-gray-200 rounded-lg shadow-lg p-6 w-full mx-auto" data-code="">
+                      <!-- obsah sa doplní JS -->
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Edge fades -->
+          <div id="edge-fade-left" class="hidden absolute inset-y-0 left-0 w-16 z-20"></div>
+          <div id="edge-fade-right" class="hidden absolute inset-y-0 right-0 w-16 z-20"></div>
+        </div>
+
+        <!-- Karty -->
+        <div id="card-view" class="hidden p-4 grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+      </div>
+    </article>
+  </main>
+
+  <footer class="bg-gray-800 text-gray-300">
+    <div class="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-8 py-12">
+      <div class="grid grid-cols-1 gap-8 md:grid-cols-3">
+        <div class="md:col-span-1">
+          <div class="font-heading text-2xl font-bold text-white">STAVKOVE<span class="text-emerald-500">KANCELARIE</span>.com</div>
+          <p class="mt-4 text-sm text-gray-400">Copyright &copy; 2008-2025</p>
+        </div>
+        <div class="grid grid-cols-2 gap-8 md:col-span-2">
+          <div>
+            <h3 class="font-semibold text-white">Informácie</h3>
+            <ul class="mt-4 space-y-2 text-sm">
+              <li><a href="#" class="text-gray-400 hover:text-white">Podmienky používania</a></li>
+            </ul>
+          </div>
+          <div>
+            <h3 class="font-semibold text-white">Dôležité odkazy</h3>
+            <ul class="mt-4 space-y-2 text-sm">
+              <li><a href="#" class="text-gray-400 hover:text-white">Ministerstvo financií SR</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<!-- Tooltip + PORTAL -->
+<div id="dynamic-tooltip"><div id="tooltip-content"></div><div id="tooltip-arrow"></div></div>
+<div id="infocard-portal" aria-hidden="true">
+  <div id="infocard-backdrop"></div>
+  <div id="infocard-holder"></div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const hamburgerButton = document.getElementById('hamburger-button');
+  const mobileMenu = document.getElementById('mobile-menu');
+  if (hamburgerButton && mobileMenu) {
+    hamburgerButton.addEventListener('click', (e) => { e.stopPropagation(); mobileMenu.classList.toggle('hidden'); });
+    document.addEventListener('click', () => mobileMenu.classList.add('hidden'));
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') mobileMenu.classList.add('hidden'); });
+    mobileMenu.addEventListener('click', (e) => e.stopPropagation());
+    mobileMenu.querySelectorAll('.submenu-toggle').forEach(btn => {
+      btn.addEventListener('click', (e) => { e.stopPropagation(); const submenu = btn.nextElementSibling; if (submenu && submenu.classList.contains('submenu')) { btn.classList.toggle('open'); submenu.classList.toggle('open'); } });
+    });
+  }
+  
+  const tableBody = document.querySelector('#table-view tbody');
+  const cardViewContainer = document.getElementById('card-view');
+  const rootElement = document.documentElement;
+  const tableWrapEl = document.getElementById('table-wrap');
+  const tableElement = document.querySelector('#table-view table');
+  const tableHead = tableElement?.querySelector('thead') || null;
+  const tableHeadCells = tableHead ? Array.from(tableHead.querySelectorAll('th')) : [];
+  let tableStickyOffset = 0;
+  let tableHeadHeight = 0;
+  let lastHeadTranslate = 0;
+
+  // =========================================================================
+  // ===== OPRAVENÁ STICKY FUNKCIA =====
+  // =========================================================================
+  function updateTableHeaderStickiness() {
+    if (!tableWrapEl || !tableElement || !tableHead || tableWrapEl.classList.contains('hidden')) {
+      resetStickyHeaderState();
+      return;
+    }
+    
+    if (!tableHeadHeight) {
+      measureTableHeadHeight();
+    }
+    
+    const stickyRow = document.querySelector('tr.row-is-sticky');
+    
+    // Kontrola či existuje details row a či je skrytý
+    if (stickyRow) {
+      const nextRow = stickyRow.nextElementSibling;
+      if (nextRow && nextRow.classList.contains('details-row') && nextRow.classList.contains('hidden')) {
+        // Ak je details row skrytý, odstránime sticky
+        stickyRow.classList.remove('row-is-sticky');
+        stickyRow.style.cssText = '';
+        resetStickyHeaderState();
+        return;
+      }
+    }
+    
+    // Aplikujeme transform na CELÉ elementy
+    let elementsToTransform = [tableHead];
+    if (stickyRow) {
+      elementsToTransform.push(stickyRow);
+    }
+
+    const tableRect = tableElement.getBoundingClientRect();
+    const offset = tableStickyOffset;
+    let translate = 0;
+    
+    if (tableRect.bottom > tableRect.top) {
+      const headerTopLimit = tableRect.bottom - tableHeadHeight;
+      const desiredTop = Math.min(Math.max(offset, tableRect.top), headerTopLimit);
+      translate = desiredTop - tableRect.top;
+      if (tableRect.bottom <= offset || headerTopLimit <= tableRect.top) {
+        translate = 0;
+      }
+    }
+    
+    if (translate <= 0.5) {
+      if (lastHeadTranslate !== 0) {
+        elementsToTransform.forEach(element => {
+          if (element) {
+            element.style.transform = '';
+            element.style.willChange = '';
+          }
+        });
+        lastHeadTranslate = 0;
+      }
+      document.body.classList.remove('table-header-stuck');
+      return;
+    }
+    
+    if (Math.abs(translate - lastHeadTranslate) > 0.5) {
+      elementsToTransform.forEach(element => {
+        if (element) {
+          element.style.transform = `translateY(${translate}px)`;
+          element.style.willChange = 'transform';
+        }
+      });
+      lastHeadTranslate = translate;
+    }
+    document.body.classList.add('table-header-stuck');
+  }
+
+  function resetStickyHeaderState() {
+    [tableHead, document.querySelector('tr.row-is-sticky')].forEach(element => {
+      if (element) {
+        element.style.transform = '';
+        element.style.willChange = '';
+        element.style.position = '';
+        element.style.zIndex = '';
+      }
+    });
+    lastHeadTranslate = 0;
+    document.body.classList.remove('table-header-stuck');
+  }
+  // =========================================================================
+
+  function measureTableHeadHeight() { 
+    if (!tableHead) return; 
+    const rect = tableHead.getBoundingClientRect(); 
+    if (rect.height) { 
+      tableHeadHeight = rect.height; 
+    } 
+  }
+  
+  function updateStickyTableHeaderOffset() { 
+    const stickyHeader = document.querySelector('header.sticky'); 
+    tableStickyOffset = stickyHeader ? Math.round(stickyHeader.getBoundingClientRect().height) : 0; 
+    rootElement.style.setProperty('--table-sticky-offset', `${tableStickyOffset}px`); 
+    measureTableHeadHeight(); 
+    updateTableHeaderStickiness(); 
+  }
+  
+  function getRatingColorClass(rating) { 
+    const r = parseFloat(String(rating).replace(',', '.')); 
+    if (r >= 8) return 'bg-emerald-500'; 
+    if (r >= 6) return 'bg-yellow-400'; 
+    return 'bg-red-500'; 
+  }
+  
+  // Card functions
+  function createCardHeaderHTML(data) { 
+    return `<div class="flex justify-between items-center mb-6 relative">
+      <div class="text-3xl font-bold text-gray-400">#${data.rank}</div>
+      <div class="w-[120px] h-[45px] p-2 bg-white flex items-center justify-center rounded-md border border-gray-200">
+        <img src="${data.logoUrl}" alt="${data.bookmaker} logo" class="${data.logoHeightClass}"/>
+      </div>
+      <div class="text-center">
+        <div class="text-2xl font-bold text-gray-900">${data.rating}</div>
+        <div class="w-16 h-1 bg-gray-200 rounded-full mt-1 mx-auto">
+          <div class="h-full ${getRatingColorClass(data.rating)} rounded-full" style="width: ${String(data.rating).replace(',', '.') * 10}%;"></div>
+        </div>
+      </div>
+    </div>`; 
+  }
+  
+  function createCardContentHTML(data) { 
+    const code = data.promoCode || ''; 
+    const hasCode = !!code; 
+    const promoCodeHTML = `<div class="mt-6"><div class="promo-code-container border-2 border-dashed border-gray-300 rounded-lg p-3 text-center cursor-pointer hover:border-gray-400 transition-colors" data-code="${code}"><div class="flex justify-between items-center"><span class="text-gray-500 text-sm">Promo kód</span><div class="flex items-center gap-2"><span class="promo-code-text text-gray-900 font-mono tracking-widest text-lg">••••••</span><svg class="copy-icon h-5 w-5 text-gray-500 ${hasCode ? '' : 'hidden'}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg></div></div></div><div class="promo-code-status text-right text-xs text-gray-500 mt-2 h-4 transition-colors">Klikni pre zobrazenie</div></div>`; 
+    return `<div class="space-y-3 text-sm"><div class="flex justify-between items-center py-2 border-b border-gray-200"><span class="text-gray-600">${data.bonusType} ${data.percentage !== '–' ? `(${data.percentage})` : ''}</span><span class="font-bold text-emerald-600 text-lg">${data.maxBonus}</span></div>${data.extraBonus ? `<div class="flex justify-between items-center py-2 border-b border-gray-200"><span class="text-gray-600">Extra bonus</span><span class="font-semibold text-sky-600 text-base">${data.extraBonus}</span></div>` : ''}${data.freeSpins ? `<div class="flex justify-between items-center py-2"><span class="text-gray-600">Free spins</span><span class="font-semibold text-sky-600 text-base">${data.freeSpins}</span></div>` : ''}</div>${promoCodeHTML}<div class="mt-6"><a href="${data.actionUrl}" rel="sponsored nofollow noopener" target="_blank" class="inline-flex items-center justify-center h-12 w-full px-5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg text-lg transition-colors">Využiť bonus</a></div>`; 
+  }
+  
+  function createCardViewItem(data) { 
+    const badgesHTML = data.badges.map(b => `<span class="badge ${b.class} shadow text-[12px] px-3 py-1">${b.text}</span>`).join(''); 
+    return `<div class="bg-white border border-gray-200 rounded-lg shadow-lg flex flex-col relative">
+      ${badgesHTML ? `<div class="absolute top-[-10px] right-[-5px] flex flex-row items-end gap-2 z-10">${badgesHTML}</div>` : ''}
+      <div class="p-6 flex-grow flex flex-col">
+        ${createCardHeaderHTML(data)}
+        ${createCardContentHTML(data)}
+      </div>
+    </div>`; 
+  }
+  
+  // Generate cards from table data
+  let visibleIndex = 0; 
+  tableBody.querySelectorAll('tr.group').forEach((row) => { 
+    const detailsRow = row.nextElementSibling; 
+    if (!detailsRow || !detailsRow.classList.contains('details-row')) return; 
+    const detailsCard = detailsRow.querySelector('.details-card'); 
+    if (!detailsCard) return; 
+    const isVisibleRow = !row.classList.contains('hidden-row'); 
+    if (isVisibleRow) visibleIndex++; 
+    const logoImg = row.querySelector('td:nth-child(2) img'); 
+    const data = { 
+      rank: isVisibleRow ? visibleIndex : '#', 
+      bookmaker: (logoImg?.alt || '').replace(' logo', ''), 
+      logoUrl: logoImg?.src || '', 
+      logoHeightClass: 'h-4', 
+      rating: row.querySelector('td:nth-child(3) .text-lg')?.textContent || 'N/A', 
+      bonusType: row.querySelector('td:nth-child(4)')?.innerText.trim().replace(/\n/g, ' ') || 'N/A', 
+      percentage: row.querySelector('td:nth-child(5)')?.textContent.trim() || '–', 
+      maxBonus: row.querySelector('td:nth-child(6) .font-bold')?.textContent || '–', 
+      extraBonus: row.querySelector('td:nth-child(12)')?.textContent.trim() || '', 
+      freeSpins: row.querySelector('td:nth-child(13)')?.textContent.trim() || '', 
+      actionUrl: row.querySelector('td:last-child a')?.href || '#', 
+      promoCode: detailsCard.dataset.code || '', 
+      badges: Array.from(row.querySelectorAll('.badge-container .badge')).map(b => ({ 
+        text: b.textContent.trim(), 
+        class: b.classList.contains('badge-recommended') ? 'badge-recommended' : 'badge-top-tip' 
+      })) 
+    }; 
+    if (data.extraBonus === '–') data.extraBonus = ''; 
+    if (data.freeSpins === '–') data.freeSpins = ''; 
+    
+    // Pre details kartu - odznaky sú súčasťou obsahu
+    const badgesHTML = data.badges.map(b => `<span class="badge ${b.class} shadow text-[12px] px-3 py-1">${b.text}</span>`).join('');
+    detailsCard.innerHTML = `
+      ${badgesHTML ? `<div class="absolute top-[-10px] right-[-5px] flex gap-2 z-10">${badgesHTML}</div>` : ''}
+      ${createCardHeaderHTML(data, false)}
+      ${createCardContentHTML(data)}
+    `; 
+    
+    // Pre kartové zobrazenie
+    if (isVisibleRow) { 
+      cardViewContainer.innerHTML += createCardViewItem(data); 
+    } 
+  });
+  
+  // Wire promo code functionality
+  function wirePromo(root = document){ 
+    root.querySelectorAll('.promo-code-container').forEach(container => { 
+      if (container.dataset.wired) return; 
+      container.dataset.wired = '1'; 
+      container.addEventListener('click', function() { 
+        if (this.classList.contains('revealed')) return; 
+        this.classList.add('revealed'); 
+        const promoCode = this.dataset.code; 
+        const codeTextElement = this.querySelector('.promo-code-text'); 
+        const copyIconElement = this.querySelector('.copy-icon'); 
+        let statusElement = this.parentElement.querySelector('.promo-code-status'); 
+        if (promoCode) { 
+          codeTextElement.textContent = promoCode; 
+          if (copyIconElement) copyIconElement.classList.remove('hidden'); 
+          if (statusElement){ 
+            statusElement.textContent = 'Kód je platný a skopírovaný'; 
+            statusElement.classList.remove('text-gray-500'); 
+            statusElement.classList.add('text-emerald-600'); 
+          } 
+          navigator.clipboard && navigator.clipboard.writeText(promoCode).catch(()=>{}); 
+        } else { 
+          codeTextElement.textContent = 'BONUS AKTIVOVANÝ'; 
+          codeTextElement.classList.add('text-emerald-600','text-sm','font-bold'); 
+          codeTextElement.classList.remove('font-mono','tracking-widest','text-lg'); 
+          if (statusElement){ 
+            statusElement.textContent = 'Po kliknutí na oranžové tlačidlo získate bonus aj bez zadania kódu.'; 
+            statusElement.classList.remove('text-gray-500'); 
+            statusElement.classList.add('text-gray-600'); 
+          } 
+        } 
+      }); 
+    }); 
+  }
+  
+  // Edge fades
+  const tableView = document.getElementById('table-view'); 
+  const fadeL = document.getElementById('edge-fade-left'); 
+  const fadeR = document.getElementById('edge-fade-right');
+  
+  function applyFades(){ 
+    if (!tableView) return; 
+    const maxScroll = tableView.scrollWidth - tableView.clientWidth; 
+    const currentScroll = tableView.scrollLeft;
+    
+    if (window.innerWidth < 768) {
+      // Na mobile - indikátor len ak sme na začiatku a je čo scrollovať
+      if (maxScroll > 1 && currentScroll < 5) {
+        tableView.classList.add('has-scroll');
+      } else {
+        tableView.classList.remove('has-scroll');
+      }
+      
+      // Skryjeme fade efekty
+      if (fadeL) fadeL.classList.add('hidden');
+      if (fadeR) fadeR.classList.add('hidden');
+    } else {
+      // Na desktope - fade efekty
+      tableView.classList.remove('has-scroll');
+      
+      if (maxScroll <= 1) { 
+        if (fadeL) fadeL.classList.add('hidden'); 
+        if (fadeR) fadeR.classList.add('hidden'); 
+        return; 
+      } 
+      if (fadeL) fadeL.classList.toggle('hidden', currentScroll <= 0); 
+      if (fadeR) fadeR.classList.toggle('hidden', currentScroll >= maxScroll - 1);
+    }
+  }
+  
+  if (tableView) {
+    tableView.addEventListener('scroll', applyFades, {passive:true}); 
+    // Pridáme aj touchmove pre mobilné zariadenia
+    tableView.addEventListener('touchmove', applyFades, {passive:true});
+  }
+  window.addEventListener('resize', applyFades);
+  
+  // Portal & Details
+  const portal = document.getElementById('infocard-portal');
+  const holder = document.getElementById('infocard-holder');
+  const backdrop = document.getElementById('infocard-backdrop');
+  let openInfoBtn = null;
+  let currentlyOpenRow = null;
+  
+  function debounce(fn, ms = 150) { 
+    let t; 
+    return (...args) => { 
+      clearTimeout(t); 
+      t = setTimeout(() => fn.apply(null, args), ms); 
+    }; 
+  }
+  
+  updateStickyTableHeaderOffset(); 
+  window.addEventListener('load', updateStickyTableHeaderOffset); 
+  window.addEventListener('resize', debounce(updateStickyTableHeaderOffset, 150)); 
+  window.addEventListener('scroll', updateTableHeaderStickiness, { passive: true });
+  
+  // =========================================================================
+  // ===== KOMPLETNÝ RESET A REINICIALIZÁCIA =====
+  // =========================================================================
+  
+  function completeReset() {
+    // Odstránime všetky transformy z hlavičky
+    if (tableHead) {
+      tableHead.style.transform = '';
+      tableHead.style.willChange = '';
+      Array.from(tableHead.querySelectorAll('th')).forEach(th => {
+        th.style.transform = '';
+        th.style.willChange = '';
+      });
+    }
+    
+    // Odstránime všetky transformy z riadkov
+    document.querySelectorAll('#table-view tbody tr').forEach(row => {
+      row.style.transform = '';
+      row.style.willChange = '';
+      row.style.position = '';
+      row.style.top = '';
+      row.style.zIndex = '';
+      
+      // Resetujeme aj všetky bunky
+      Array.from(row.cells).forEach(cell => {
+        cell.style.transform = '';
+        cell.style.willChange = '';
+      });
+    });
+    
+    // Reset premenných
+    lastHeadTranslate = 0;
+    tableHeadHeight = 0;
+    
+    // Odstránime sticky classes
+    document.body.classList.remove('table-header-stuck');
+    document.querySelectorAll('.row-is-sticky').forEach(el => {
+      el.classList.remove('row-is-sticky');
+    });
+    
+    // Premeranie výšky
+    measureTableHeadHeight();
+  }
+  
+  // OPRAVENÁ FUNKCIA ZATVORENIA
+  function closePortal({ resetRow = true } = {}) {
+    portal.style.display = 'none';
+    holder.innerHTML = '';
+    document.body.style.overflow = '';
+    
+    if (openInfoBtn) {
+      const icon = openInfoBtn.querySelector('.arrow-icon');
+      if (icon) icon.classList.remove('rotate-180');
+      openInfoBtn = null;
+    }
+    
+    if (resetRow && currentlyOpenRow) {
+      // Skryjeme details row
+      currentlyOpenRow.classList.add('hidden');
+      currentlyOpenRow.style.display = 'none';
+      
+      // Nájdeme sticky riadok
+      const stickyRow = currentlyOpenRow.previousElementSibling;
+      if (stickyRow) {
+        const prevBtnArrow = stickyRow.querySelector('.toggle-details-btn .arrow-icon');
+        if (prevBtnArrow) prevBtnArrow.classList.remove('rotate-180');
+      }
+      
+      currentlyOpenRow = null;
+      
+      // Kompletný reset
+      completeReset();
+      
+      // Počkáme 2 frames pre istotu
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          updateStickyTableHeaderOffset();
+        });
+      });
+    }
+  }
+  
+  function resetAllInfocards() {
+    // Skryjeme všetky details rows
+    document.querySelectorAll('.details-row').forEach(r => {
+      r.classList.add('hidden');
+      r.style.display = 'none';
+    });
+    
+    // Reset šípok
+    document.querySelectorAll('.toggle-details-btn .arrow-icon.rotate-180').forEach(a => {
+      a.classList.remove('rotate-180');
+    });
+    
+    currentlyOpenRow = null;
+    openInfoBtn = null;
+    
+    // Kompletný reset
+    completeReset();
+    
+    closePortal({ resetRow: false });
+    
+    // Reinicializácia
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        updateStickyTableHeaderOffset();
+      });
+    });
+  }
+  
+  // Sledovanie horizontálneho scrollbaru
+  let wasScrollable = false;
+  
+  function checkScrollbarAndCloseInfobox() {
+    if (!tableView) return;
+    
+    const isNowScrollable = tableView.scrollWidth > tableView.clientWidth;
+    
+    // Ak sa práve objavil scrollbar a máme otvorený infobox v inline režime
+    if (!wasScrollable && isNowScrollable && currentlyOpenRow && !portal.style.display.includes('block')) {
+      // Zatvoríme infobox
+      const parentDataRow = currentlyOpenRow.previousElementSibling;
+      if (parentDataRow) {
+        currentlyOpenRow.classList.add('hidden');
+        currentlyOpenRow.style.display = '';
+        parentDataRow.classList.remove('row-is-sticky');
+        parentDataRow.style.transform = '';
+        parentDataRow.style.willChange = '';
+        
+        const btnArrow = parentDataRow.querySelector('.toggle-details-btn .arrow-icon');
+        if (btnArrow) btnArrow.classList.remove('rotate-180');
+        
+        // Reset hlavičky
+        if (tableHead) {
+          tableHead.style.transform = '';
+          tableHead.style.willChange = '';
+        }
+        lastHeadTranslate = 0;
+        currentlyOpenRow = null;
+        
+        // Prepočítame sticky
+        setTimeout(() => {
+          updateTableHeaderStickiness();
+        }, 10);
+      }
+    }
+    
+    wasScrollable = isNowScrollable;
+  }
+  
+  // Inicializácia
+  checkScrollbarAndCloseInfobox();
+  
+  // Pridáme listener na resize
+  window.addEventListener('resize', () => {
+    checkScrollbarAndCloseInfobox();
+  });
+  
+  let lastWidth = window.innerWidth;
+  const checkBreakpointChange = () => {
+    const currentWidth = window.innerWidth;
+    const wasDesktop = lastWidth >= 768;
+    const isDesktop = currentWidth >= 768;
+    
+    // Kontrola scrollbaru pri každej zmene veľkosti
+    checkScrollbarAndCloseInfobox();
+    
+    if (wasDesktop !== isDesktop) {
+      resetAllInfocards();
+    }
+    lastWidth = currentWidth;
+  };
+  
+  window.addEventListener('resize', debounce(checkBreakpointChange, 150));
+  window.addEventListener('orientationchange', () => {
+    setTimeout(() => {
+      checkBreakpointChange();
+      updateStickyTableHeaderOffset();
+    }, 100);
+  });
+  
+  if (backdrop) backdrop.addEventListener('click', closePortal);
+  document.addEventListener('keydown', (e) => {
+    if(e.key === 'Escape') closePortal();
+  });
+
+  /* ===== LOGIKA OTVÁRANIA INFOBOXU ===== */
+  document.querySelectorAll('.toggle-details-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const targetRow = document.querySelector(this.getAttribute('data-target'));
+      if (!targetRow) return;
+
+      const isScrollable = tableView.scrollWidth > tableView.clientWidth;
+      const arrow = this.querySelector('.arrow-icon');
+      const parentDataRow = this.closest('tr.group');
+
+      // Zatvoríme predchádzajúci otvorený riadok ak existuje
+      if (currentlyOpenRow && currentlyOpenRow !== targetRow) {
+        currentlyOpenRow.classList.add('hidden');
+        currentlyOpenRow.style.display = '';
+        const prevStickyRow = currentlyOpenRow.previousElementSibling;
+        if (prevStickyRow) {
+          prevStickyRow.classList.remove('row-is-sticky');
+          prevStickyRow.style.transform = '';
+          prevStickyRow.style.willChange = '';
+          // Resetujeme inline štýly
+          Array.from(prevStickyRow.cells).forEach(cell => {
+            cell.style.backgroundColor = '';
+          });
+        }
+        const prevBtnArrow = currentlyOpenRow.previousElementSibling?.querySelector('.toggle-details-btn .arrow-icon');
+        if (prevBtnArrow) prevBtnArrow.classList.remove('rotate-180');
+      }
+
+      if (isScrollable) {
+        // PORTAL režim pre úzke obrazovky
+        if (portal.style.display === 'block' && openInfoBtn === this) {
+          closePortal();
+          return;
+        }
+        if (openInfoBtn && openInfoBtn !== this) {
+          const prevArrow = openInfoBtn.querySelector('.arrow-icon');
+          if(prevArrow) prevArrow.classList.remove('rotate-180');
+        }
+        holder.innerHTML = '';
+        const card = targetRow.querySelector('.details-card').cloneNode(true);
+        
+        // Pridáme tlačidlo zatvorenia priamo do karty
+        const closeBtn = document.createElement('button');
+        closeBtn.id = 'infocard-close';
+        closeBtn.innerHTML = '×';
+        closeBtn.onclick = closePortal;
+        card.appendChild(closeBtn);
+        
+        holder.appendChild(card);
+        portal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+        openInfoBtn = this;
+        if (arrow) arrow.classList.add('rotate-180');
+        wirePromo(card);
+      } else {
+        // INLINE režim pre široké obrazovky
+        const isNowHidden = targetRow.classList.toggle('hidden');
+        targetRow.style.display = isNowHidden ? '' : '';
+        
+        if (arrow) arrow.classList.toggle('rotate-180', !isNowHidden);
+        
+        if (parentDataRow) {
+          if (!isNowHidden) {
+            // Otvárame - pridáme sticky
+            parentDataRow.classList.add('row-is-sticky');
+            currentlyOpenRow = targetRow;
+            
+            // FORCE žltú farbu na VŠETKY bunky cez inline štýly
+            Array.from(parentDataRow.cells).forEach(cell => {
+              cell.style.backgroundColor = '#fefce8';
+            });
+          } else {
+            // Zatvárame - odstránime sticky a resetujeme
+            parentDataRow.classList.remove('row-is-sticky');
+            parentDataRow.style.transform = '';
+            parentDataRow.style.willChange = '';
+            
+            // Odstránime inline štýly
+            Array.from(parentDataRow.cells).forEach(cell => {
+              cell.style.backgroundColor = '';
+            });
+            
+            currentlyOpenRow = null;
+            
+            // Reset hlavičky
+            if (tableHead) {
+              tableHead.style.transform = '';
+              tableHead.style.willChange = '';
+            }
+            lastHeadTranslate = 0;
+          }
+        }
+        
+        closePortal({ resetRow: false });
+        
+        // Prepočítame sticky po malej pauze
+        setTimeout(() => {
+          updateTableHeaderStickiness();
+        }, 10);
+      }
+    });
+  });
+  
+  const druhTh = document.querySelector('#table-view thead th:nth-child(4)');
+  const mobileIB = document.getElementById('bonus-type-mobile-i');
+  if (druhTh && mobileIB) {
+    const txt = druhTh.getAttribute('data-tooltip-text') || '';
+    if (txt) mobileIB.setAttribute('data-tooltip-text', txt);
+  }
+
+  /* ===== Tooltip ===== */
+  (function () {
+    const tooltipEl = document.getElementById('dynamic-tooltip');
+    const tooltipContent = document.getElementById('tooltip-content');
+    let activeTrigger = null;
+    
+    function positionTooltip(trigger) {
+      const r = trigger.getBoundingClientRect();
+      tooltipEl.style.visibility = 'hidden';
+      tooltipEl.style.opacity = '0';
+      tooltipEl.style.display = 'block';
+      let left = r.left + r.width / 2 - tooltipEl.offsetWidth / 2;
+      let top = r.top - tooltipEl.offsetHeight - 8;
+      if (top < 8) top = r.bottom + 8;
+      if (left < 10) left = 10;
+      const maxLeft = window.innerWidth - tooltipEl.offsetWidth - 10;
+      if (left > maxLeft) left = maxLeft;
+      tooltipEl.style.left = left + 'px';
+      tooltipEl.style.top = top + 'px';
+      tooltipEl.style.visibility = 'visible';
+      tooltipEl.style.opacity = '1';
+    }
+    
+    function showTooltip(trigger) {
+      const text = trigger.getAttribute('data-tooltip-text');
+      if (!text) return;
+      tooltipContent.textContent = text;
+      activeTrigger = trigger;
+      positionTooltip(trigger);
+    }
+    
+    function hideTooltip() {
+      tooltipEl.style.opacity = '0';
+      tooltipEl.style.visibility = 'hidden';
+      activeTrigger = null;
+    }
+    
+    function wireTriggers(root = document) {
+      root.querySelectorAll('[data-tooltip-text]').forEach(t => {
+        t.addEventListener('mouseenter', () => showTooltip(t));
+        t.addEventListener('mouseleave', hideTooltip);
+        t.addEventListener('focus', () => showTooltip(t));
+        t.addEventListener('blur', hideTooltip);
+        t.addEventListener('click', (e) => {
+          if (activeTrigger === t) hideTooltip();
+          else showTooltip(t);
+          e.stopPropagation();
+        });
+        t.addEventListener('touchstart', (e) => {
+          showTooltip(t);
+          e.stopPropagation();
+        }, { passive: true });
+      });
+    }
+    
+    wireTriggers(document);
+    document.addEventListener('click', () => hideTooltip());
+    window.addEventListener('scroll', () => activeTrigger && hideTooltip(), { passive: true });
+    window.addEventListener('resize', () => activeTrigger && hideTooltip());
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') hideTooltip();
+    });
+  })();
+
+  /* ===== Prepínač Tabuľka/Karty ===== */
+  const showTableBtn = document.getElementById('show-table-btn');
+  const showCardsBtn = document.getElementById('show-cards-btn');
+  const cardView = document.getElementById('card-view');
+  
+  showTableBtn.addEventListener('click', () => {
+    if (tableWrapEl) tableWrapEl.classList.remove('hidden');
+    cardView.classList.add('hidden');
+    showTableBtn.classList.add('active-view-btn');
+    showCardsBtn.classList.remove('active-view-btn');
+    resetAllInfocards();
+    applyFades();
+    updateTableHeaderStickiness();
+  });
+  
+  showCardsBtn.addEventListener('click', () => {
+    if (tableWrapEl) tableWrapEl.classList.add('hidden');
+    cardView.classList.remove('hidden');
+    showCardsBtn.classList.add('active-view-btn');
+    showTableBtn.classList.remove('active-view-btn');
+    resetAllInfocards();
+    updateTableHeaderStickiness();
+  });
+
+  wirePromo(document);
+  wirePromo(cardViewContainer);
+  requestAnimationFrame(applyFades);
+});
+</script>
+
 </body>
 </html>
